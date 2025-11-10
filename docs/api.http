@@ -1,0 +1,6 @@
+POST http://localhost:3000
+Content-Type: application/x-www-form-urlencoded
+
+keyword=대전맛집&limit=10
+
+#####
