@@ -54,6 +54,44 @@ npm run build
 npm start
 ```
 
+### PM2로 실행 (프로덕션 환경)
+
+PM2를 사용하면 백그라운드에서 안정적으로 실행할 수 있습니다.
+
+```bash
+# PM2 설치 (최초 1회)
+npm install -g pm2
+
+# 실행
+npm run pm2
+
+# 상태 확인
+pm2 list
+
+# 로그 확인
+npm run pm2:logs
+
+# 재시작
+npm run pm2:restart
+
+# 중지
+npm run pm2:stop
+
+# 삭제
+npm run pm2:delete
+```
+
+**또는 더 간단하게:**
+
+```bash
+# TypeScript 직접 실행
+pm2 start src/index.ts --name place-basic --interpreter node --interpreter-args '--import tsx'
+
+# 또는 빌드 후 실행
+npm run build
+pm2 start dist/index.js --name place-basic
+```
+
 ## API 사용법
 
 ### POST /
@@ -137,4 +175,3 @@ curl http://localhost:3000/health
 ## 라이센스
 
 ISC
-

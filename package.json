@@ -7,6 +7,11 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "pm2": "pm2 start src/index.ts --name place-basic --interpreter node --interpreter-args '--import tsx'",
+    "pm2:stop": "pm2 stop place-basic",
+    "pm2:restart": "pm2 restart place-basic",
+    "pm2:delete": "pm2 delete place-basic",
+    "pm2:logs": "pm2 logs place-basic",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

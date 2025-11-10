@@ -1,6 +1,20 @@
-POST http://localhost:3000
+### Health Check
+GET http://localhost:3000/health
+
+### Place Search - 강남역 맛집
+POST http://localhost:3000/
 Content-Type: application/x-www-form-urlencoded
 
-keyword=대전맛집&limit=10
+keyword=강남역 맛집&limit=50
 
-#####
+### Place Search - 서울 카페
+POST http://localhost:3000/
+Content-Type: application/x-www-form-urlencoded
+
+keyword=서울 카페&limit=100
+
+### Place Search - Error Test (No keyword)
+POST http://localhost:3000/
+Content-Type: application/x-www-form-urlencoded
+
+limit=50
