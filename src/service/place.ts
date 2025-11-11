@@ -95,7 +95,8 @@ export async function fetchAndBuild(
   });
 
   if (!response.ok) {
-    throw new Error('검색 요청중 오류가 발생하였습니다.');
+    console.error(`[${new Date().toISOString()}] 에러 발생:`, response);
+    throw new Error(`[${new Date().toISOString()}] 검색 요청중 오류가 발생하였습니다.`);
   }
 
   const html = await response.text();
