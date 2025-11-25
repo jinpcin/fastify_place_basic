@@ -16,7 +16,7 @@ export async function place(
   limit: number,
   startDelay: number,
   endDelay: number,
-  redis: Redis
+  redis: Redis | null
 ) {
   try {
     if (!search_keyword) {
@@ -24,7 +24,7 @@ export async function place(
     }
 
     const cacheKey = `place:${search_keyword}:${limit}`;
-    const cached = await redis.get(cacheKey);
+    const cached = await redis?.get(cacheKey);
 
     if (cached) {
       const cachedData = JSON.parse(cached);
@@ -44,7 +44,7 @@ export async function place(
 
     // 캐시에 저장
     if (freshData?.result?.length > 0) {
-      await redis.setex(
+      await redis?.setex(
         cacheKey,
         TTL,
         JSON.stringify({ timestamp: Date.now(), data: freshData })
@@ -196,12 +196,12 @@ async function revalidate(
   limit: number,
   startDelay: number,
   endDelay: number,
-  redis: Redis,
+  redis: Redis | null,
   cacheKey: string
 ) {
   fetchAndBuild(search_keyword, limit, startDelay, endDelay)
     .then(async (freshData) => {
-      await redis.setex(
+      await redis?.setex(
         cacheKey,
         TTL,
         JSON.stringify({ timestamp: Date.now(), data: freshData })

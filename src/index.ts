@@ -1,36 +1,41 @@
-import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import formBody from '@fastify/formbody';
-import { Redis } from 'ioredis';
 import dotenv from 'dotenv';
+import Fastify from 'fastify';
+import { Redis } from 'ioredis';
 import { place } from './service/place.js';
 
 // 환경 변수 로드
 dotenv.config();
+const useCache = process.env.USE_CACHE === 'true';
 
 const fastify = Fastify({
   logger: true
 });
 
-// Redis 클라이언트 생성
-const redis = new Redis({
-  host: process.env.REDIS_HOST || 'host.docker.internal',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD,
-  db: parseInt(process.env.REDIS_DB || '0'),
-  retryStrategy(times: number) {
-    const delay = Math.min(times * 50, 2000);
-    return delay;
-  }
-});
+let redis: Redis | null = null;
 
-redis.on('connect', () => {
-  console.log('Redis에 연결되었습니다.');
-});
+if (useCache) {
+  // Redis 클라이언트 생성
+  redis = new Redis({
+    host: process.env.REDIS_HOST || 'host.docker.internal',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+    password: process.env.REDIS_PASSWORD,
+    db: parseInt(process.env.REDIS_DB || '0'),
+    retryStrategy(times: number) {
+      const delay = Math.min(times * 50, 2000);
+      return delay;
+    }
+  });
 
-redis.on('error', (err: Error) => {
-  console.error('Redis 연결 오류:', err);
-});
+  redis.on('connect', () => {
+    console.log('Redis에 연결되었습니다.');
+  });
+
+  redis.on('error', (err: Error) => {
+    console.error('Redis 연결 오류:', err);
+  });
+}
 
 // CORS 플러그인 등록
 await fastify.register(cors, {
@@ -85,7 +90,7 @@ const start = async () => {
     console.log(`✨ Fastify 서버가 http://${host}:${port} 에서 실행 중입니다.`);
   } catch (err) {
     fastify.log.error(err);
-    await redis.quit();
+    await redis?.quit();
     process.exit(1);
   }
 };
@@ -94,7 +99,7 @@ const start = async () => {
 const shutdown = async () => {
   console.log('서버를 종료합니다...');
   try {
-    await redis.quit();
+    await redis?.quit();
     await fastify.close();
     console.log('서버가 정상적으로 종료되었습니다.');
     process.exit(0);
