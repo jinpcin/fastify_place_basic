@@ -2,6 +2,7 @@ import { Redis } from "ioredis";
 import {
   extractItemsAndTotal,
   getMainDetail,
+  getMainPlaceList,
   getPlaceList,
   getPlaceType
 } from "../api/placeApi.js";
@@ -16,6 +17,7 @@ export async function place(
   limit: number,
   startDelay: number,
   endDelay: number,
+  onlysrp: boolean,
   redis: Redis | null
 ) {
   try {
@@ -32,7 +34,7 @@ export async function place(
       // TTL 만료 여부 확인 후, 만료 시 백그라운드 갱신
       const expired = Date.now() - cachedData.timestamp > (TTL * 1000);
       if (expired) {
-        revalidate(search_keyword, limit, startDelay, endDelay, redis, cacheKey);
+        revalidate(search_keyword, limit, startDelay, endDelay, onlysrp, redis, cacheKey);
       }
 
       console.log(`캐시 사용: ${cacheKey}`);
@@ -40,7 +42,7 @@ export async function place(
     }
 
     // 캐시에 없으면 데이터 새로 가져오기
-    const freshData = await fetchAndBuild(search_keyword, limit, startDelay, endDelay);
+    const freshData = await fetchAndBuild(search_keyword, limit, startDelay, endDelay, onlysrp);
 
     // 캐시에 저장
     if (freshData?.result?.length > 0) {
@@ -71,6 +73,7 @@ export async function fetchAndBuild(
   limit: number,
   startDelay: number,
   endDelay: number,
+  onlysrp: boolean
 ) {
 
   const searchUrl = `https://m.search.naver.com/search.naver?sm=mtp_hty.top&where=m&query=${encodeURIComponent(search_keyword)}`;
@@ -107,13 +110,81 @@ export async function fetchAndBuild(
       keyword: search_keyword
     };
   }
-  let placeType = getPlaceType(mainDetail, 'place');
+
   const pageUnit = 100;
   let pageMax = Math.min(limit, 300);
-  const geo_x = "126.9783882";
-  const geo_y = "37.5666103";
+
+  // 등록할 데이터셋
   const rdata = [] as Record<string, any>[];
 
+  // 통합검색만 조회
+  if (onlysrp) {
+
+    // 바로 place 1개로 바로 상세가 나오면
+    if (mainDetail.placeData) {
+
+      log.placeLog(`통합검색에서 바로 상세 가져오기 '${search_keyword}' `);
+
+      return {
+        code: "0000",
+        type: "action",
+        result: [
+          { ...mainDetail.placeData, rank: 1 }
+        ],
+      };
+    }
+
+    const mainPlaceList = await getMainPlaceList(html);
+
+    log.placeLog(`통합검색에서 가져오기 '${search_keyword}' `);
+
+    let rank = 1;
+    for (const item of mainPlaceList) {
+      const {
+        id,
+        gdid,
+        name,
+        category = "",
+        categoryCodeList = "",
+        visitorReviewScore = "",
+        blogCafeReviewCount,
+        visitorReviewCount,
+        saveCount = "",
+        newOpening = "",
+        roadAddress,
+        imageUrl,
+      } = item;
+
+      rdata.push({
+        id,
+        gdid,
+        name,
+        category,
+        categoryCodeList,
+        visitorReviewScore,
+        blogCafeReviewCount,
+        visitorReviewCount,
+        saveCount,
+        newOpening,
+        roadAddress,
+        imageUrl,
+        placeTotalCount: mainDetail.total,
+        rank,
+      });
+
+      rank++;
+    }
+
+    return {
+      code: "0000",
+      type: "action",
+      result: rdata,
+    };
+  }
+
+  let placeType = getPlaceType(mainDetail, 'place');
+  const geo_x = "126.9783882";
+  const geo_y = "37.5666103";
   for (let p = 1; p < pageMax; p += pageUnit) {
     log.placeLog(`가져오기 '${search_keyword}' (${placeType}) 요청 시작 번호 : ${p}`);
 
@@ -187,19 +258,19 @@ export async function fetchAndBuild(
   };
 }
 
-
 /**
- * 백그라운드에서 데이터 갱신
+ * 데이터 갱신
  */
 async function revalidate(
   search_keyword: string,
   limit: number,
   startDelay: number,
   endDelay: number,
+  onlysrp: boolean,
   redis: Redis | null,
   cacheKey: string
 ) {
-  fetchAndBuild(search_keyword, limit, startDelay, endDelay)
+  fetchAndBuild(search_keyword, limit, startDelay, endDelay, onlysrp)
     .then(async (freshData) => {
       await redis?.setex(
         cacheKey,

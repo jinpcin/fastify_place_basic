@@ -57,6 +57,7 @@ fastify.post('/', async (request, reply) => {
     const body = request.body as any;
     const keyword = body.keyword as string;
     const limit = parseInt(body.limit || '50');
+    const onlysrp = (body.onlysrp as string === 'Y');
 
     if (!keyword) {
       return reply.code(400).send({
@@ -66,7 +67,7 @@ fastify.post('/', async (request, reply) => {
       });
     }
 
-    const result = await place(keyword, limit, 0, 0, redis);
+    const result = await place(keyword, limit, 0, 0, onlysrp, redis);
 
     return reply.send(result);
   } catch (error: any) {

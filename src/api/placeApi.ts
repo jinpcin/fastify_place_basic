@@ -231,7 +231,28 @@ export async function getMainDetail(html: string) {
           const nluMatch = html.match(/naver\.search\.ext\.(?:nmb|loc)\.salt\.nlu = '(.+)';/);
           if (nluMatch) {
             const nluParsed = JSON.parse(nluMatch[1]);
-            return { queryType: nluParsed.queryType, total: 1, input: null };
+            const placeDetailBase = JSON.parse(apolloStateMatch[1])[`PlaceDetailBase:${nluParsed.queryResult.bizId}`];
+            // console.log(placeDetailBase);
+
+            return {
+              queryType: nluParsed.queryType,
+              placeData: {
+                id: placeDetailBase.id,
+                gdid: "",
+                name: placeDetailBase.name,
+                category: placeDetailBase.category,
+                categoryCodeList: placeDetailBase.categoryCodeList,
+                visitorReviewScore: placeDetailBase.visitorReviewsScore,
+                blogCafeReviewCount: "",
+                visitorReviewCount: placeDetailBase.visitorReviewsTotal,
+                saveCount: "",
+                newOpening: "",
+                roadAddress: placeDetailBase.roadAddress,
+                imageUrl: "",
+              },
+              total: 1,
+              input: null
+             };
           }
         }
 
